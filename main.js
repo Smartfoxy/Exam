@@ -1,8 +1,8 @@
 "use strict"
 
 const $content = document.querySelector('#content');
-//
-// const filmList = localStorage.storedFilms ? JSON.parse(localStorage.storedFilms) : [];
+
+
 
 document.querySelector('#add-new').addEventListener('click', ()=> {
     openModal();
@@ -12,17 +12,13 @@ document.querySelector('#add-new').addEventListener('click', ()=> {
 document.querySelector('#search').addEventListener('submit', (e) => {
     e.preventDefault();
     window.location.hash = '#search';
-    const filmList = JSON.parse(localStorage.storedFilms);
+    const filmList = localStorage.storedFilms ? JSON.parse(localStorage.storedFilms) : [];
     const searchResult = filmList.filter(film => { 
         return film.title.toLowerCase().includes(e.target.query.value.toLowerCase());
     })
     showMovies(searchResult);
 });
 
-/*function fillModal(id_film) {
-    const film_info = localStorage.getItem(id_film);
-
-} может в отдельную функцию?? */  
 
 function openModal(id_film) {
     
@@ -40,21 +36,27 @@ function openModal(id_film) {
             const form = modal.querySelector('.modalForm');
             const $field = modal.querySelector('.field');
 
+            let poster ='';
+            let votesPos = 0;
+            let votesNeg = 0;
+
             if(id_film) {
-                let film_info = JSON.parse(localStorage.getItem(id_film));
+                
+                const film_info = JSON.parse(localStorage.getItem(id_film));
                 let {
                     title,
                     origin,
                     year,
-                    poster,
+                    poster : p,
+                    votesPos : pos,
+                    votesNeg : neg,
                     country,
                     tagline,
                     producer,
                     crew,
                     actors,
                     imdb,
-                    describ
-
+                    describ 
                 } = film_info;
 
                 form.filmName.value = title;
@@ -66,13 +68,16 @@ function openModal(id_film) {
                 form.actors.value = actors;
                 form.imdb.value = imdb;
                 form.describ.value = describ;
-                form.poster.nextElementSibling.textContent = poster.split(';', 1);
+                form.poster.nextElementSibling.textContent = p.split(';', 1);
+                poster = p;
+                votesPos = pos;
+                votesNeg = neg;
                
-                //хотела сделать деструктуризацию, но он меня не понял.. не заполняет поля формы которые уже заполнены ((почему?
+                ////хотела сделать деструктуризацию, но он меня не понял.. не заполняет поля формы которые уже заполнены ((почему?
                 /*let {
                         elements: {
                             filmName: {
-                                value: test
+                                value = test
                             },
                             year: {
                                 value: yeartest
@@ -80,14 +85,10 @@ function openModal(id_film) {
                         }
                     } = form;
 
-                    test = title;
+                    //test = title;
                     yeartest = year*/
 
-                 //console.log(test);   
-
-                //const $field = modal.querySelector('.field');             
-                
-//нужно ли имя у формы crew?? если нет -удали везде
+                 //console.log(yeartest);           
 
                 crew.forEach((e,i) => {
                     if(i > 0){
@@ -96,9 +97,7 @@ function openModal(id_film) {
                 })
 
                 form.querySelectorAll('.crew').forEach((el, index) => {
-                    
                     crew.forEach((e, i) => {
-                        
                         const {position: positionValue, memberName: memberNameValue} = e;
 
                         if(index === i){
@@ -126,14 +125,16 @@ function openModal(id_film) {
 
             }
 
-            
             modal.querySelector('.btn-add-field').addEventListener('click', (e) => {
                 addMemberOfCrew($field);
             })
 
             removeMemberOfCrew($field);
-
-            let poster ='';
+            
+            modal.querySelector('input[type=file]').addEventListener('change', (e) => {
+                e.target.nextElementSibling.textContent = e.target.value;
+                previewFile(e.target);
+            })
 
             function previewFile(target) {
                 let file    = target.files[0];
@@ -150,11 +151,6 @@ function openModal(id_film) {
                 }  
             }
                 
-
-            modal.querySelector('input[type=file]').addEventListener('change', (e) => {
-                e.target.nextElementSibling.textContent = e.target.value;
-                previewFile(e.target);
-            })
             
             modal.querySelector('.saveBtn').addEventListener('click', (e) => {
                 
@@ -229,29 +225,13 @@ function openModal(id_film) {
                         title
                     });
                 }
-
-               /* function getBase64Image(img) {
-                    let canvas = document.createElement("canvas");
-                    canvas.width = img.width;
-                    canvas.height = img.height;
                 
-                    let ctx = canvas.getContext("2d");
-                    ctx.drawImage(img, 0, 0);
-                
-                    let dataURL = canvas.toDataURL("image/png");
-                
-                    return dataURL.replace(/^data:image\/(png|jpg);base64,/, "");
-                }
-
-                let test = getBase64Image(poster);*/
-                //console.log(poster);
-
-                
-
                 localStorage.setItem(id, JSON.stringify({
                     title,
                     origin,
                     year,
+                    votesPos,
+                    votesNeg,
                     poster,
                     country,
                     tagline,
@@ -261,21 +241,13 @@ function openModal(id_film) {
                     imdb,
                     describ
                 }));
-
               
-
                 localStorage.storedFilms = JSON.stringify(filmList);
                 $(modal).modal('hide');
                 window.location.hash = '#list';
-                //showAllMovies();
             })
         })
 }
-
-/*document.querySelector('.all-movies').addEventListener('click', ()=> {
-    //showAllMovies();
-    window.location.hash = '#listtttt';
-})*/
 
 function addMemberOfCrew(node) {
     const inner = `<div class="col-sm-5"><input type="text" class="form-control position" placeholder="Должность"></div>`+
@@ -294,35 +266,26 @@ function removeMemberOfCrew(node) {
     })
 }
 
-function showAllMovies() {
-    const filmList = JSON.parse(localStorage.storedFilms);
-    showMovies(filmList);
-}
-
-
 function showMovies(filmList) {
     fetch('./card.html')
         .then(res => res.text())
         .then(data => {
-            
-            const $allFilms = document.createElement('div');
-            
-            filmList.forEach((film) => {
-
-                let {title, describ, imdb, poster} = JSON.parse(localStorage.getItem(film.id));
-                const $film = document.createElement('div');
+    
+           $content.innerHTML = filmList.reduce((acc, film) => {
+                const {title, describ, imdb, poster} = JSON.parse(localStorage.getItem(film.id));
                 const imdbShort = (Math.floor(imdb/100)/10).toFixed(2);
+                const currentFilm = template( {title, describ, imdb, imdbShort}, data);
+                $content.innerHTML = currentFilm;
+                const $film = $content.querySelector('.card');
                 $film.classList.add('currentFilm');
                 $film.setAttribute('film_id', film.id);
-                let currentFilm = template( {title, describ, imdb, imdbShort}, data);
-                $film.innerHTML = currentFilm;
                 $film.querySelector('.more').setAttribute('href', '#list-'+ film.id);
                 $film.querySelector('.card-img').src = poster;
-                $allFilms.append($film);
-                
-            })
-            
-            $content.firstElementChild.replaceWith($allFilms);
+                $film.querySelector('.card-img').alt = title;
+
+                return acc += $film.outerHTML;
+
+            }, '');
 
             $('.btn-delete').click((el)=> {
                 $('body').append('<div class = "overlay"></div>');
@@ -361,13 +324,6 @@ function showMovies(filmList) {
                         //deleteFilm(el);
                     })*/
                         
-                        
-                    
-
-                    //здесь не сложилось с jquery селектором - почему???
-                    /*$('.del .yes').click(function () {
-                        console.log('yes');
-                    });*/
                
             })  
 
@@ -381,8 +337,6 @@ function showMovies(filmList) {
             document.querySelectorAll('.more').forEach((e) => {
                 e.addEventListener('click', (el)=> {
                     openMovie(el); 
-                   // const id = getFilmId(el);
-                    //window.location.hash = `#list-${id}`;
                 })
             })
         })
@@ -407,25 +361,12 @@ function openMovie(film) {
             },'');
             
             const currentFilm = template( {title, origin, tagline, year, country, producer, imdb, imdbShort, describ, actorsList, crewList}, data);
+            $content.innerHTML = currentFilm;
+           
+            $content.querySelector('.img-fluid').src = poster;
 
-
-            const $film = document.createElement('div');
-            $film.innerHTML = currentFilm;
-            $film.querySelector('.img-fluid').src = poster;
-
-            $content.firstElementChild.replaceWith($film);
-
-
-
-           /* document.querySelectorAll('.btn-text').forEach(e => {
-                e.addEventListener('click', el => {  
-                    el.currentTarget.dataset.count++;
-                })
-            })*/
-
-
-            document.querySelector('.pos').dataset.count = votesPos ? votesPos : 0;
-            document.querySelector('.neg').dataset.count = votesNeg ? votesNeg : 0;
+            document.querySelector('.pos').dataset.count = votesPos;
+            document.querySelector('.neg').dataset.count = votesNeg;
 
             document.querySelector('.pos').addEventListener('click', el => {  
                 votesCounter(el, id, 'votesPos');
@@ -447,13 +388,6 @@ function getFilmId(film) {
 }
 
 function deleteFilm(film) {
-    //let modal = document.createElement('div');
-            /*$(modal).attr({"class":"modal_del fade", "tabindex":"-1", "role":"dialog", "aria-hidden":"true"})
-            .html('<div><p>Ты уверен?</p><button type="button">Ok</button></div>')
-            .modal('show');
-            $(modal).on('hidden.bs.modal', () => {
-                $(modal).remove();
-            })*/
     const id = getFilmId(film);
     localStorage.removeItem(id);
                
@@ -466,8 +400,9 @@ function deleteFilm(film) {
 
     films.splice(filmForDel, 1);
     
-    localStorage.storedFilms = JSON.stringify(films);  
-    showAllMovies();    
+    localStorage.storedFilms = JSON.stringify(films);     
+    showMovies(films);
+    document.forms.search.query.value = '';
 }    
 
 function template(data, tpl) {
@@ -482,7 +417,7 @@ function template(data, tpl) {
 
 window.addEventListener('hashchange', (e) => { 
     if(window.location.hash === '#list') {
-        const filmList = JSON.parse(localStorage.storedFilms);
+        const filmList = localStorage.storedFilms ? JSON.parse(localStorage.storedFilms) : [];
         showMovies(filmList);
         document.forms.search.query.value = '';
     }
