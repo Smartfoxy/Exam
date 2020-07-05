@@ -2,7 +2,7 @@
 
 const $content = document.querySelector('#content');
 
-
+window.location.hash = '';
 
 document.querySelector('#add-new').addEventListener('click', ()=> {
     openModal();
